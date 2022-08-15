@@ -9,22 +9,32 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    var albums = [AResult]()
+    
+    var albumViewModel = AlbumViewModel()
     
     @IBOutlet weak var albumTableView: UITableView!
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        title = "Top Albums"
+        
         albumTableView.delegate = self
         albumTableView.dataSource = self
+        
         NetworkManager.shared.getJSON(urlString: URLBuilder.album.rawValue) { (result: Result<AllAlbum, NetworkError>) in
+            
             switch result {
             case .success(let searchResults):
-                self.albums = searchResults.feed.results
-//                albumTableView.reloadData()
+                self.albumViewModel.albums = searchResults.feed.results
+                DispatchQueue.main.async {
+                    self.albumTableView.reloadData()
+                }
+                
             case .failure(let error):
-                print(error, error.localizedDescription)
+                NSLog(error.localizedDescription)
             }
         }
+        
     }
     
     
@@ -32,18 +42,26 @@ class ViewController: UIViewController {
 
 
 extension ViewController: UITableViewDataSource {
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 0
+        return albumViewModel.albums.count
+        
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = albumTableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        return cell
+        
+        let cell = albumTableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as? AlbumCell
+        cell?.albumName.text = albumViewModel.albums[indexPath.row].artistName
+        cell?.albumArt.image = albumViewModel.albums[indexPath.row].artworkUrl100.toImage
+        return cell ?? UITableViewCell()
+        
     }
-    
-    
 }
 
 extension ViewController: UITableViewDelegate {
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        albumViewModel.passedIndex = indexPath.row
+    }
     
 }
